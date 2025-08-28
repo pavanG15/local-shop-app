@@ -1,0 +1,12 @@
+{
+  "name": "delete-cloudinary-image-function",
+  "version": "1.0.0",
+  "description": "Serverless function to delete images from Cloudinary",
+  "main": "delete-cloudinary-image.js",
+  "scripts": {
+    "start": "node delete-cloudinary-image.js"
+  },
+  "dependencies": {
+    "cloudinary": "^1.x.x"
+  }
+}

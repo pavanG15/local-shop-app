@@ -1,0 +1,21 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users collection:
+    // - Anyone can create a user document (for signup)
+    // - Users can only read/update their own user document
+    match /users/{userId} {
+      allow read, update: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null;
+    }
+
+    // Offers collection:
+    // - Business owners can create/edit/delete their own offers
+    // - Customers can only read offers
+    match /offers/{offerId} {
+      allow read: if request.auth != null; // All authenticated users can read
+      allow create: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'business';
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.ownerId;
+    }
+  }
+}

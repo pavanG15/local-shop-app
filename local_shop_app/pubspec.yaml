@@ -1,0 +1,33 @@
+name: local_shop_app
+description: A new Flutter project for a local discount and offers platform.
+publish_to: 'none' # Remove this line if you intend to publish to pub.dev
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=2.18.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.2
+  firebase_core: ^2.32.0
+  firebase_auth: ^4.20.0
+  cloud_firestore: ^4.17.5
+  firebase_storage: ^11.7.5
+  google_sign_in: ^6.2.1
+  image_picker: ^1.1.2
+  intl: ^0.19.0
+  cloudinary_url_gen: ^1.8.0
+  flutter_datetime_picker_plus: ^2.1.0 # Added for expiry date selection UI
+  http: ^1.5.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/google_logo.png
