@@ -6,6 +6,7 @@ import 'package:local_shop_app/services/auth_service.dart';
 import 'package:intl/intl.dart';
 import 'package:local_shop_app/screens/add_offer_screen.dart';
 import 'package:local_shop_app/screens/edit_offer_screen.dart';
+import 'package:local_shop_app/screens/profile_screen.dart';
 import 'package:local_shop_app/widgets/responsive_offers_grid_widget.dart';
 
 class BusinessOwnerDashboardScreen extends StatefulWidget {
@@ -48,7 +49,17 @@ class _BusinessOwnerDashboardScreenState extends State<BusinessOwnerDashboardScr
         title: const Text('Business Owner Dashboard'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.person),
+            tooltip: 'Profile',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const ProfileScreen()),
+              );
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.add),
+            tooltip: 'Add Product',
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (context) => const AddOfferScreen()),
@@ -57,6 +68,7 @@ class _BusinessOwnerDashboardScreenState extends State<BusinessOwnerDashboardScr
           ),
           IconButton(
             icon: const Icon(Icons.logout),
+            tooltip: 'Logout',
             onPressed: () async {
               await _authService.signOut();
             },

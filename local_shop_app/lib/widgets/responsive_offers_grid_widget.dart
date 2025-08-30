@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:local_shop_app/services/firestore_service.dart';
 import 'package:local_shop_app/models/offer_model.dart';
+import 'package:local_shop_app/models/paginated_offers.dart';
 
 class ResponsiveOffersGridWidget extends StatelessWidget {
   final String ownerId;
@@ -20,7 +21,7 @@ class ResponsiveOffersGridWidget extends StatelessWidget {
       crossAxisCount = 2;
     }
 
-    return StreamBuilder<List<Offer>>(
+    return StreamBuilder<PaginatedOffers>(
       stream: FirestoreService().getUserOffersStream(ownerId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -35,13 +36,13 @@ class ResponsiveOffersGridWidget extends StatelessWidget {
           );
         }
 
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+        if (!snapshot.hasData || snapshot.data!.offers.isEmpty) {
           return const Center(
             child: Text('No offers available.'),
           );
         }
 
-        final offers = snapshot.data!;
+        final offers = snapshot.data!.offers;
 
         return GridView.builder(
           padding: const EdgeInsets.all(16.0),
