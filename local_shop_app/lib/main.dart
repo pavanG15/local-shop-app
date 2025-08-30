@@ -5,6 +5,7 @@ import 'package:local_shop_app/services/auth_service.dart';
 import 'package:local_shop_app/firebase_options.dart';
 import 'package:local_shop_app/screens/signup_screen.dart';
 import 'package:local_shop_app/screens/business_owner_dashboard_screen.dart'; // Import BusinessOwnerDashboardScreen
+import 'package:local_shop_app/screens/user_dashboard_screen.dart'; // Import UserDashboardScreen
 import 'package:local_shop_app/screens/offer_detail_screen.dart';
 import 'package:local_shop_app/services/firestore_service.dart';
 import 'package:local_shop_app/models/offer_model.dart';
@@ -19,6 +20,8 @@ Future<void> main() async {
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -26,13 +29,13 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: AuthWrapper(),
+      home: const AuthWrapper(),
     );
   }
 }
 
 class AuthWrapper extends StatefulWidget {
-  const AuthWrapper({Key? key}) : super(key: key);
+  const AuthWrapper({super.key});
 
   @override
   _AuthWrapperState createState() => _AuthWrapperState();
@@ -85,7 +88,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
         if (role == 'business') {
           return const BusinessOwnerDashboardScreen();
         } else {
-          return UserHomeScreen();
+          return const UserHomeScreen();
         }
       },
     );
@@ -93,7 +96,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
 }
 
 class UserHomeScreen extends StatefulWidget {
-  const UserHomeScreen({Key? key}) : super(key: key);
+  const UserHomeScreen({super.key});
 
   @override
   State<UserHomeScreen> createState() => _UserHomeScreenState();
@@ -138,6 +141,16 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
       appBar: AppBar(
         title: const Text('Offers for You'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.dashboard),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const UserDashboardScreen(),
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
@@ -239,7 +252,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
 
 class OfferCard extends StatelessWidget {
   final Offer offer;
-  const OfferCard({Key? key, required this.offer}) : super(key: key);
+  const OfferCard({super.key, required this.offer});
 
   @override
   Widget build(BuildContext context) {
@@ -317,7 +330,7 @@ class OfferCard extends StatelessWidget {
 }
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+  const LoginScreen({super.key});
 
   @override
   _LoginScreenState createState() => _LoginScreenState();

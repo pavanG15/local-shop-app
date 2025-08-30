@@ -96,4 +96,19 @@ class AuthService {
   Future<AppUser?> getAppUser(String uid) async {
     return await _firestoreService.getUser(uid);
   }
+
+  // Update profile in both Firestore and Firebase Auth
+  Future<void> updateProfile(String uid, {String? name, String? phone, String? photoUrl}) async {
+    // Update Firestore
+    await _firestoreService.updateProfile(uid, name: name, phone: phone, photoUrl: photoUrl);
+
+    // Update Firebase Auth if name or photoUrl changed
+    User? user = _auth.currentUser;
+    if (user != null) {
+      await user.updateDisplayName(name);
+      if (photoUrl != null) {
+        await user.updatePhotoURL(photoUrl);
+      }
+    }
+  }
 }

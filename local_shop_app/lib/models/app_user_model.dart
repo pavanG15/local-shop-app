@@ -6,6 +6,11 @@ class AppUser {
   final String role; // 'customer' or 'business'
   final String? shopName; // For business owners
   final String? category; // For business owners
+  final String? name; // Customer name
+  final String? phone; // Phone number
+  final String? photoUrl; // Profile picture URL
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
 
   AppUser({
     required this.uid,
@@ -13,6 +18,11 @@ class AppUser {
     required this.role,
     this.shopName,
     this.category,
+    this.name,
+    this.phone,
+    this.photoUrl,
+    this.createdAt,
+    this.updatedAt,
   });
 
   factory AppUser.fromFirestore(DocumentSnapshot doc) {
@@ -23,6 +33,11 @@ class AppUser {
       role: data['role'] ?? 'customer', // Default to customer
       shopName: data['shopName'],
       category: data['category'],
+      name: data['name'],
+      phone: data['phone'],
+      photoUrl: data['photoUrl'],
+      createdAt: data['createdAt'] != null ? (data['createdAt'] as Timestamp).toDate() : null,
+      updatedAt: data['updatedAt'] != null ? (data['updatedAt'] as Timestamp).toDate() : null,
     );
   }
 
@@ -32,6 +47,11 @@ class AppUser {
       'role': role,
       'shopName': shopName,
       'category': category,
+      'name': name,
+      'phone': phone,
+      'photoUrl': photoUrl,
+      'createdAt': createdAt ?? FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
     };
   }
 }

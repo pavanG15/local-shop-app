@@ -5,7 +5,7 @@ import 'package:local_shop_app/models/offer_model.dart';
 class OfferDetailScreen extends StatelessWidget {
   final Offer offer;
 
-  const OfferDetailScreen({Key? key, required this.offer}) : super(key: key);
+  const OfferDetailScreen({super.key, required this.offer});
 
   @override
   Widget build(BuildContext context) {

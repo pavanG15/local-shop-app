@@ -5,13 +5,13 @@ import 'package:intl/intl.dart';
 import 'package:local_shop_app/models/app_user_model.dart';
 import 'package:local_shop_app/models/offer_model.dart';
 import 'package:local_shop_app/services/auth_service.dart';
+import 'dart:typed_data'; // Import for Uint8List
 import 'package:local_shop_app/services/firestore_service.dart';
-import 'package:local_shop_app/utils/image_picker_util.dart';
 import 'package:local_shop_app/services/cloudinary_service.dart';
 // Removed flutter_datetime_picker_plus as it's no longer directly used for date picking
 
 class AddOfferScreen extends StatefulWidget {
-  const AddOfferScreen({Key? key}) : super(key: key);
+  const AddOfferScreen({super.key});
 
   @override
   State<AddOfferScreen> createState() => _AddOfferScreenState();
@@ -58,7 +58,8 @@ class _AddOfferScreenState extends State<AddOfferScreen> {
   }
 
   Future<void> _pickImage() async {
-    final XFile? image = await ImagePickerUtil.pickImage();
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
     setState(() {
       _imageFile = image;
     });
@@ -259,7 +260,15 @@ class _AddOfferScreenState extends State<AddOfferScreen> {
                     const SizedBox(height: 16),
                     _imageFile == null
                         ? const Text('No image selected.')
-                        : Image.network(_imageFile!.path, height: 150),
+                        : FutureBuilder<Uint8List>(
+                            future: _imageFile!.readAsBytes(),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
+                                return Image.memory(snapshot.data!, height: 150);
+                              }
+                              return const CircularProgressIndicator();
+                            },
+                          ),
                     ElevatedButton.icon(
                       onPressed: _pickImage,
                       icon: const Icon(Icons.image),

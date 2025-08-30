@@ -4,9 +4,10 @@
   "description": "Serverless function to delete images from Cloudinary",
   "main": "delete-cloudinary-image.js",
   "scripts": {
-    "start": "node delete-cloudinary-image.js"
+    "start": "node delete-cloudinary-image.js",
+    "build": "echo 'No build step required for serverless functions'"
   },
   "dependencies": {
-    "cloudinary": "^1.x.x"
+    "cloudinary": "^1.41.3"
   }
 }

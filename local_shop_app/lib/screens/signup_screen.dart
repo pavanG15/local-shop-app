@@ -4,7 +4,7 @@ import 'package:local_shop_app/services/auth_service.dart';
 
 class SignupScreen extends StatefulWidget {
   final Function toggleView;
-  const SignupScreen({Key? key, required this.toggleView}) : super(key: key);
+  const SignupScreen({super.key, required this.toggleView});
 
   @override
   _SignupScreenState createState() => _SignupScreenState();
@@ -141,6 +141,7 @@ class _SignupScreenState extends State<SignupScreen> {
               icon: Image.asset(
                 'assets/google_logo.png',
                 height: 24.0,
+                width: 24.0, // Added width for consistency, though not strictly necessary for the path fix
               ),
               label: const Text('Sign in with Google'),
               style: ElevatedButton.styleFrom(

@@ -6,13 +6,12 @@ import 'package:local_shop_app/models/app_user_model.dart';
 import 'package:local_shop_app/models/offer_model.dart';
 import 'package:local_shop_app/services/auth_service.dart';
 import 'package:local_shop_app/services/firestore_service.dart';
-import 'package:local_shop_app/utils/image_picker_util.dart';
 import 'package:local_shop_app/services/cloudinary_service.dart';
 // Removed flutter_datetime_picker_plus as it's no longer directly used for date picking
 
 class EditOfferScreen extends StatefulWidget {
   final Offer offer;
-  const EditOfferScreen({Key? key, required this.offer}) : super(key: key);
+  const EditOfferScreen({super.key, required this.offer});
 
   @override
   State<EditOfferScreen> createState() => _EditOfferScreenState();
@@ -85,7 +84,8 @@ class _EditOfferScreenState extends State<EditOfferScreen> {
   }
 
   Future<void> _pickImage() async {
-    final XFile? image = await ImagePickerUtil.pickImage();
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
     setState(() {
       _imageFile = image;
       if (image != null) {

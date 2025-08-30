@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:local_shop_app/models/offer_model.dart';
 import 'package:local_shop_app/models/app_user_model.dart';
+import 'package:local_shop_app/models/paginated_offers.dart'; // Import PaginatedOffers
 import 'package:local_shop_app/services/cloudinary_service.dart'; // Import CloudinaryService
 
 class FirestoreService {
@@ -9,11 +10,82 @@ class FirestoreService {
 
   // --- Offer Operations ---
 
-  Stream<List<Offer>> getOffersForBusinessOwner(String ownerId) {
+  Stream<PaginatedOffers> getUserOffersStream(
+    String ownerId, {
+    String? category,
+    String? searchQuery,
+    String? sortOption,
+    DocumentSnapshot? startAfterDoc,
+    int limit = 10,
+  }) {
+    Query query = _db.collection('offers').where('ownerId', isEqualTo: ownerId);
+
+    // Filter by category
+    if (category != null && category != 'All') {
+      query = query.where('category', isEqualTo: category);
+    }
+
+    // Apply sorting for Firestore query (only one field can be ordered directly)
+    // For complex sorting, in-memory sorting will be used after fetching.
+    String orderByField = 'expiryDate'; // Default sort
+    bool descending = true;
+
+    switch (sortOption) {
+      case 'oldest':
+        orderByField = 'expiryDate';
+        descending = false;
+        break;
+      case 'highest_discount':
+        orderByField = 'discount';
+        descending = true;
+        break;
+      case 'lowest_discount':
+        orderByField = 'discount';
+        descending = false;
+        break;
+      case 'newest':
+      default:
+        orderByField = 'expiryDate';
+        descending = true;
+        break;
+    }
+    query = query.orderBy(orderByField, descending: descending);
+
+    if (startAfterDoc != null) {
+      query = query.startAfterDocument(startAfterDoc);
+    }
+    query = query.limit(limit + 1); // Fetch one extra document to check if there's more
+
+    return query.snapshots().map((snapshot) {
+      final docs = snapshot.docs;
+      final hasMore = docs.length > limit;
+      final actualDocs = hasMore ? docs.take(limit).toList() : docs;
+
+      List<Offer> offers = actualDocs
+          .map((doc) => Offer.fromFirestore(doc))
+          .toList();
+
+      // Apply search filter in-memory
+      if (searchQuery != null && searchQuery.isNotEmpty) {
+        final lowerCaseSearchQuery = searchQuery.toLowerCase();
+        offers = offers.where((offer) {
+          return offer.title.toLowerCase().contains(lowerCaseSearchQuery);
+        }).toList();
+      }
+
+      return PaginatedOffers(
+        offers: offers,
+        lastDocument: hasMore ? actualDocs.last : null,
+        hasMore: hasMore,
+      );
+    });
+  }
+
+  // New method to get all user offers for analytics (without pagination/search/sort)
+  Stream<List<Offer>> getAllUserOffersForAnalytics(String ownerId) {
     return _db
         .collection('offers')
         .where('ownerId', isEqualTo: ownerId)
-        .orderBy('expiryDate') // Sort by expiry date
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => Offer.fromFirestore(doc))
@@ -35,7 +107,7 @@ class FirestoreService {
     }
 
     // Sort by expiryDate (soonest first)
-    query = query.orderBy('expiryDate');
+    // query = query.orderBy('expiryDate');
 
     return query.snapshots().map((snapshot) {
       List<Offer> offers = snapshot.docs
@@ -51,6 +123,10 @@ class FirestoreService {
                  offer.shopName.toLowerCase().contains(lowerCaseSearchQuery);
         }).toList();
       }
+      
+      // Sort offers by expiry date in-memory
+      offers.sort((a, b) => a.expiryDate.compareTo(b.expiryDate));
+      
       return offers;
     });
   }
@@ -103,13 +179,25 @@ class FirestoreService {
     await _db.collection('users').doc(uid).update(data);
   }
 
-  Future<void> createUserData(String uid, String email, String role, {String? shopName, String? category}) async {
+  Future<void> createUserData(String uid, String email, String role, {String? shopName, String? category, String? name, String? phone, String? photoUrl}) async {
     await _db.collection('users').doc(uid).set(AppUser(
       uid: uid,
       email: email,
       role: role,
       shopName: shopName,
       category: category,
+      name: name,
+      phone: phone,
+      photoUrl: photoUrl,
     ).toFirestore());
+  }
+
+  Future<void> updateProfile(String uid, {String? name, String? phone, String? photoUrl}) async {
+    Map<String, dynamic> data = {};
+    if (name != null) data['name'] = name;
+    if (phone != null) data['phone'] = phone;
+    if (photoUrl != null) data['photoUrl'] = photoUrl;
+    data['updatedAt'] = FieldValue.serverTimestamp();
+    await updateUserData(uid, data);
   }
 }
