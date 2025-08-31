@@ -14,7 +14,7 @@ class AuthService {
       UserCredential result = await _auth.signInWithEmailAndPassword(email: email, password: password);
       return result.user;
     } catch (e) {
-      print(e.toString());
+      // Handle Google sign-in error
       return null;
     }
   }
@@ -40,7 +40,7 @@ class AuthService {
       }
       return result.user;
     } catch (e) {
-      print(e.toString());
+      // Handle registration error
       return null;
     }
   }
@@ -71,7 +71,7 @@ class AuthService {
       }
       return result.user;
     } catch (e) {
-      print(e.toString());
+      // Handle authentication error
       return null;
     }
   }
@@ -98,9 +98,9 @@ class AuthService {
   }
 
   // Update profile in both Firestore and Firebase Auth
-  Future<void> updateProfile(String uid, {String? name, String? phone, String? photoUrl}) async {
+  Future<void> updateProfile(String uid, {String? name, String? phone, String? photoUrl, String? shopName, String? category}) async {
     // Update Firestore
-    await _firestoreService.updateProfile(uid, name: name, phone: phone, photoUrl: photoUrl);
+    await _firestoreService.updateProfile(uid, name: name, phone: phone, photoUrl: photoUrl, shopName: shopName, category: category);
 
     // Update Firebase Auth if name or photoUrl changed
     User? user = _auth.currentUser;

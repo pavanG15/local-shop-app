@@ -22,23 +22,27 @@ class _AddOfferScreenState extends State<AddOfferScreen> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _discountController = TextEditingController();
+  final TextEditingController _termsController = TextEditingController();
+  final TextEditingController _startDateController = TextEditingController();
   final TextEditingController _expiryDateController = TextEditingController();
 
-  final FirestoreService _firestoreService = FirestoreService();
   final AuthService _authService = AuthService();
+  final FirestoreService _firestoreService = FirestoreService();
   final CloudinaryService _cloudinaryService = CloudinaryService();
   User? _currentUser;
   AppUser? _appUser;
   XFile? _imageFile;
+  DateTime? _selectedStartDate;
   DateTime? _selectedExpiryDate;
-  String? _selectedExpiryDuration;
+  String? _selectedCategory;
   bool _isLoading = false;
 
-  final List<String> _expiryDurations = [
-    '3 days',
-    '7 days',
-    '15 days',
-    '30 days', // Changed from '1 month' for consistency in calculation
+  final List<String> _categories = [
+    'Food',
+    'Grocery',
+    'Clothing',
+    'Electronics',
+    'Other',
   ];
 
   @override
@@ -46,8 +50,9 @@ class _AddOfferScreenState extends State<AddOfferScreen> {
     super.initState();
     _currentUser = _authService.getCurrentUser();
     _loadUserData();
-    _selectedExpiryDuration = _expiryDurations.first;
-    _calculateExpiryDate(_selectedExpiryDuration!);
+    _selectedCategory = _categories.first;
+    _selectedStartDate = DateTime.now();
+    _startDateController.text = DateFormat('yyyy-MM-dd').format(_selectedStartDate!);
   }
 
   Future<void> _loadUserData() async {
@@ -65,36 +70,9 @@ class _AddOfferScreenState extends State<AddOfferScreen> {
     });
   }
 
-  void _calculateExpiryDate(String duration) {
-    DateTime now = DateTime.now();
-    DateTime calculatedDate;
-
-    switch (duration) {
-      case '3 days':
-        calculatedDate = now.add(const Duration(days: 3));
-        break;
-      case '7 days':
-        calculatedDate = now.add(const Duration(days: 7));
-        break;
-      case '15 days':
-        calculatedDate = now.add(const Duration(days: 15));
-        break;
-      case '30 days':
-        calculatedDate = now.add(const Duration(days: 30));
-        break;
-      default:
-        calculatedDate = now.add(const Duration(days: 7));
-    }
-
-    setState(() {
-      _selectedExpiryDate = calculatedDate;
-      _expiryDateController.text = DateFormat('yyyy-MM-dd').format(calculatedDate);
-    });
-  }
-
   Future<void> _submitOffer() async {
     if (_formKey.currentState!.validate()) {
-      if (_appUser == null || _appUser!.shopName == null || _appUser!.category == null) {
+      if (_appUser == null || _appUser!.shopName == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Business owner details are missing. Please update your profile.')),
         );
@@ -135,13 +113,15 @@ class _AddOfferScreenState extends State<AddOfferScreen> {
           offerId: '',
           ownerId: _currentUser!.uid,
           shopName: _appUser!.shopName!,
-          category: _appUser!.category!,
+          category: _selectedCategory!,
           title: _titleController.text,
           description: _descriptionController.text,
           discount: int.parse(_discountController.text),
+          startDate: _selectedStartDate!,
           expiryDate: _selectedExpiryDate!,
           imageUrl: imageUrl,
           imagePublicId: imagePublicId,
+          status: 'active',
         );
 
         await _firestoreService.addOffer(newOffer);
@@ -174,6 +154,13 @@ class _AddOfferScreenState extends State<AddOfferScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Add New Offer'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            debugPrint('Back button pressed');
+            Navigator.of(context).pop();
+          },
+        ),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -222,24 +209,33 @@ class _AddOfferScreenState extends State<AddOfferScreen> {
                       },
                     ),
                     const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _termsController,
+                      decoration: const InputDecoration(labelText: 'Terms'),
+                      maxLines: 2,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter terms';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
                     InputDecorator(
                       decoration: const InputDecoration(
-                        labelText: 'Expiry Duration',
+                        labelText: 'Category',
                         border: OutlineInputBorder(),
                       ),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
-                          value: _selectedExpiryDuration,
+                          value: _selectedCategory,
                           isExpanded: true,
                           onChanged: (String? newValue) {
                             setState(() {
-                              _selectedExpiryDuration = newValue;
-                              if (newValue != null) {
-                                _calculateExpiryDate(newValue);
-                              }
+                              _selectedCategory = newValue;
                             });
                           },
-                          items: _expiryDurations.map<DropdownMenuItem<String>>((String value) {
+                          items: _categories.map<DropdownMenuItem<String>>((String value) {
                             return DropdownMenuItem<String>(
                               value: value,
                               child: Text(value),
@@ -250,12 +246,55 @@ class _AddOfferScreenState extends State<AddOfferScreen> {
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
-                      controller: _expiryDateController,
+                      controller: _startDateController,
                       decoration: const InputDecoration(
-                        labelText: 'Calculated Expiry Date',
+                        labelText: 'Start Date',
                         suffixIcon: Icon(Icons.calendar_today),
                       ),
                       readOnly: true,
+                      onTap: () async {
+                        DateTime? picked = await showDatePicker(
+                          context: context,
+                          initialDate: _selectedStartDate ?? DateTime.now(),
+                          firstDate: DateTime.now(),
+                          lastDate: DateTime(2101),
+                        );
+                        if (picked != null) {
+                          setState(() {
+                            _selectedStartDate = picked;
+                            _startDateController.text = DateFormat('yyyy-MM-dd').format(picked);
+                          });
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _expiryDateController,
+                      decoration: const InputDecoration(
+                        labelText: 'Expiry Date',
+                        suffixIcon: Icon(Icons.calendar_today),
+                      ),
+                      readOnly: true,
+                      onTap: () async {
+                        DateTime? picked = await showDatePicker(
+                          context: context,
+                          initialDate: _selectedExpiryDate ?? DateTime.now().add(const Duration(days: 7)),
+                          firstDate: DateTime.now(),
+                          lastDate: DateTime(2101),
+                        );
+                        if (picked != null) {
+                          setState(() {
+                            _selectedExpiryDate = picked;
+                            _expiryDateController.text = DateFormat('yyyy-MM-dd').format(picked);
+                          });
+                        }
+                      },
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please select an expiry date';
+                        }
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 16),
                     _imageFile == null
@@ -275,16 +314,16 @@ class _AddOfferScreenState extends State<AddOfferScreen> {
                       label: const Text('Select Image (Optional)'),
                     ),
                     const SizedBox(height: 32),
-                    Center(
-                      child: ElevatedButton(
-                        onPressed: _submitOffer,
-                        child: const Text('Add Offer'),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+                   Center(
+                     child: ElevatedButton(
+                       onPressed: _submitOffer,
+                       child: const Text('Add Offer'),
+                     ),
+                   ),
+                 ],
+               ),
+             ),
+           ),
     );
   }
 }

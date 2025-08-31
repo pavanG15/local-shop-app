@@ -6,7 +6,19 @@ import 'package:local_shop_app/models/paginated_offers.dart';
 
 class ResponsiveOffersGridWidget extends StatelessWidget {
   final String ownerId;
-  const ResponsiveOffersGridWidget({Key? key, required this.ownerId}) : super(key: key);
+  final Function(Offer)? onEdit;
+  final Function(Offer)? onDelete;
+  final Function(Offer)? onViewDetails;
+  final Function(Offer)? onPause;
+
+  const ResponsiveOffersGridWidget({
+    Key? key,
+    required this.ownerId,
+    this.onEdit,
+    this.onDelete,
+    this.onViewDetails,
+    this.onPause,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -25,8 +37,21 @@ class ResponsiveOffersGridWidget extends StatelessWidget {
       stream: FirestoreService().getUserOffersStream(ownerId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(),
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const CircularProgressIndicator(),
+                const SizedBox(height: 16),
+                Text(
+                  'Loading your offers...',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
           );
         }
 
@@ -37,8 +62,47 @@ class ResponsiveOffersGridWidget extends StatelessWidget {
         }
 
         if (!snapshot.hasData || snapshot.data!.offers.isEmpty) {
-          return const Center(
-            child: Text('No offers available.'),
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.store,
+                      size: 50,
+                      color: Colors.grey[400],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'No offers yet',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[700],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Create your first offer to start attracting customers!',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[600],
+                      height: 1.5,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
           );
         }
 
@@ -70,24 +134,60 @@ class ResponsiveOffersGridWidget extends StatelessWidget {
                 children: [
                   Expanded(
                     flex: 5,
-                    child: ClipRRect(
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(12.0)),
-                      child: AspectRatio(
-                        aspectRatio: 16 / 9,
-                        child: imageUrl.isNotEmpty
-                            ? Image.network(
-                                imageUrl,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return const Center(
+                    child: Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: const BorderRadius.vertical(top: Radius.circular(12.0)),
+                          child: AspectRatio(
+                            aspectRatio: 16 / 9,
+                            child: imageUrl.isNotEmpty
+                                ? Image.network(
+                                    imageUrl,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return const Center(
+                                        child: Icon(Icons.image_not_supported, size: 40),
+                                      );
+                                    },
+                                  )
+                                : const Center(
                                     child: Icon(Icons.image_not_supported, size: 40),
-                                  );
-                                },
-                              )
-                            : const Center(
-                                child: Icon(Icons.image_not_supported, size: 40),
-                              ),
-                      ),
+                                  ),
+                          ),
+                        ),
+                        Positioned(
+                          top: 8.0,
+                          right: 8.0,
+                          child: Row(
+                            children: [
+                              if (onEdit != null)
+                                IconButton(
+                                  icon: const Icon(Icons.edit, color: Colors.white),
+                                  onPressed: () {
+                                    debugPrint('Edit Offer button pressed');
+                                    onEdit!(offer);
+                                  },
+                                ),
+                              if (onDelete != null)
+                                IconButton(
+                                  icon: const Icon(Icons.delete, color: Colors.white),
+                                  onPressed: () {
+                                    debugPrint('Delete Offer button pressed');
+                                    onDelete!(offer);
+                                  },
+                                ),
+                              if (onPause != null)
+                                IconButton(
+                                  icon: const Icon(Icons.pause, color: Colors.white),
+                                  onPressed: () {
+                                    debugPrint('Pause/Resume Offer button pressed');
+                                    onPause!(offer);
+                                  },
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   Expanded(
@@ -126,7 +226,10 @@ class ResponsiveOffersGridWidget extends StatelessWidget {
                             width: double.infinity,
                             child: ElevatedButton(
                               onPressed: () {
-                                // TODO: Implement navigation to offer details screen
+                                debugPrint('View Details button pressed');
+                                if (onViewDetails != null) {
+                                  onViewDetails!(offer);
+                                }
                               },
                               style: ElevatedButton.styleFrom(
                                 shape: RoundedRectangleBorder(

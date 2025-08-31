@@ -22,6 +22,7 @@ class _EditOfferScreenState extends State<EditOfferScreen> {
   late TextEditingController _titleController;
   late TextEditingController _descriptionController;
   late TextEditingController _discountController;
+  late TextEditingController _startDateController;
   late TextEditingController _expiryDateController;
 
   final FirestoreService _firestoreService = FirestoreService();
@@ -30,6 +31,7 @@ class _EditOfferScreenState extends State<EditOfferScreen> {
   User? _currentUser;
   AppUser? _appUser;
   XFile? _imageFile;
+  DateTime? _selectedStartDate;
   DateTime? _selectedExpiryDate;
   String? _selectedExpiryDuration;
   bool _isLoading = false;
@@ -52,6 +54,8 @@ class _EditOfferScreenState extends State<EditOfferScreen> {
     _titleController = TextEditingController(text: widget.offer.title);
     _descriptionController = TextEditingController(text: widget.offer.description);
     _discountController = TextEditingController(text: widget.offer.discount.toString());
+    _selectedStartDate = widget.offer.startDate;
+    _startDateController = TextEditingController(text: DateFormat('yyyy-MM-dd').format(widget.offer.startDate));
     _selectedExpiryDate = widget.offer.expiryDate;
     _expiryDateController = TextEditingController(text: DateFormat('yyyy-MM-dd').format(widget.offer.expiryDate));
     _currentImageUrl = widget.offer.imageUrl;
@@ -182,9 +186,11 @@ class _EditOfferScreenState extends State<EditOfferScreen> {
           title: _titleController.text,
           description: _descriptionController.text,
           discount: int.parse(_discountController.text),
+          startDate: _selectedStartDate!,
           expiryDate: _selectedExpiryDate!,
           imageUrl: imageUrl,
           imagePublicId: imagePublicId,
+          status: widget.offer.status,
         );
 
         await _firestoreService.updateOffer(updatedOffer);
@@ -217,6 +223,13 @@ class _EditOfferScreenState extends State<EditOfferScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Edit Offer'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            debugPrint('Back button pressed');
+            Navigator.of(context).pop();
+          },
+        ),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())

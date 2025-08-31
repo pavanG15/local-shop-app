@@ -180,10 +180,18 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('User Dashboard'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            debugPrint('Back button pressed');
+            Navigator.of(context).pop();
+          },
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
+              debugPrint('Logout button pressed');
               await _authService.signOut();
               if (mounted) {
                 // Navigate to login or home screen after logout
@@ -370,6 +378,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                               const SizedBox(height: 30),
                               ElevatedButton.icon(
                                 onPressed: () {
+                                  debugPrint('Add Offer button pressed');
                                   Navigator.of(context).push(
                                     MaterialPageRoute(
                                       builder: (context) => const AddOfferScreen(),
@@ -596,7 +605,10 @@ class _ProductCardState extends State<ProductCard> {
                             ),
                             child: IconButton(
                               icon: const Icon(Icons.edit, color: Colors.white, size: 20),
-                              onPressed: widget.onEdit,
+                              onPressed: () {
+                                debugPrint('Edit Product button pressed');
+                                widget.onEdit();
+                              },
                               tooltip: 'Edit Product',
                             ),
                           ),
@@ -608,7 +620,10 @@ class _ProductCardState extends State<ProductCard> {
                             ),
                             child: IconButton(
                               icon: const Icon(Icons.delete, color: Colors.white, size: 20),
-                              onPressed: widget.onDelete,
+                              onPressed: () {
+                                debugPrint('Delete Product button pressed');
+                                widget.onDelete();
+                              },
                               tooltip: 'Delete Product',
                             ),
                           ),

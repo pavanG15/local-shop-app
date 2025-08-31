@@ -20,6 +20,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final CloudinaryService _cloudinaryService = CloudinaryService();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _shopNameController = TextEditingController();
+  final TextEditingController _categoryController = TextEditingController();
   String? _photoUrl;
   bool _isLoading = false;
   XFile? _selectedImage;
@@ -30,6 +32,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (widget.appUser != null) {
       _nameController.text = widget.appUser!.name ?? '';
       _phoneController.text = widget.appUser!.phone ?? '';
+      _shopNameController.text = widget.appUser!.shopName ?? '';
+      _categoryController.text = widget.appUser!.category ?? '';
       _photoUrl = widget.appUser!.photoUrl;
     }
   }
@@ -38,6 +42,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
+    _shopNameController.dispose();
+    _categoryController.dispose();
     super.dispose();
   }
 
@@ -91,6 +97,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         name: _nameController.text.trim(),
         phone: _phoneController.text.trim(),
         photoUrl: _photoUrl,
+        shopName: widget.appUser!.role == 'business' ? _shopNameController.text.trim() : null,
+        category: widget.appUser!.role == 'business' ? _categoryController.text.trim() : null,
       );
 
       if (mounted) {
@@ -117,6 +125,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Edit Profile'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            debugPrint('Back button pressed');
+            Navigator.of(context).pop();
+          },
+        ),
         actions: [
           TextButton(
             onPressed: _isLoading ? null : _saveProfile,
@@ -135,7 +150,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         child: Column(
           children: [
             GestureDetector(
-              onTap: _pickImage,
+              onTap: () {
+                debugPrint('Pick image gesture detected');
+                _pickImage();
+              },
               child: Stack(
                 children: [
                   CircleAvatar(
@@ -188,6 +206,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               keyboardType: TextInputType.phone,
             ),
             const SizedBox(height: 16),
+            if (widget.appUser?.role == 'business') ...[
+              TextField(
+                controller: _shopNameController,
+                decoration: const InputDecoration(
+                  labelText: 'Shop Name',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _categoryController,
+                decoration: const InputDecoration(
+                  labelText: 'Category',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
             if (_selectedImage != null)
               ElevatedButton(
                 onPressed: _uploadImage,

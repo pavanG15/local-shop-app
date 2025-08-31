@@ -34,11 +34,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
+  Future<void> _signOut() async {
+    try {
+      await FirebaseAuth.instance.signOut();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Signed out successfully')),
+        );
+        // Navigate to login screen and clear navigation stack
+        Navigator.of(context).pushReplacementNamed('/'); // This will go to AuthWrapper
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error signing out: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profile'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            debugPrint('Back button pressed');
+            Navigator.of(context).pop();
+          },
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.edit),
@@ -90,6 +116,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           style: Theme.of(context).textTheme.bodyMedium,
                         ),
                       ],
+                      if (_appUser!.role == 'business') ...[
+                        const SizedBox(height: 16),
+                        Text(
+                          _appUser!.shopName ?? 'No shop name set',
+                          style: Theme.of(context).textTheme.headlineSmall,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _appUser!.category ?? 'No category set',
+                          style: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                      ],
                       const SizedBox(height: 16),
                       Card(
                         child: Padding(
@@ -113,6 +151,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   title: const Text('Phone'),
                                   subtitle: Text(_appUser!.phone!),
                                 ),
+                              if (_appUser!.role == 'business') ...[
+                                if (_appUser!.shopName != null)
+                                  ListTile(
+                                    leading: const Icon(Icons.store),
+                                    title: const Text('Shop Name'),
+                                    subtitle: Text(_appUser!.shopName!),
+                                  ),
+                                if (_appUser!.category != null)
+                                  ListTile(
+                                    leading: const Icon(Icons.category),
+                                    title: const Text('Category'),
+                                    subtitle: Text(_appUser!.category!),
+                                  ),
+                              ],
                               ListTile(
                                 leading: const Icon(Icons.calendar_today),
                                 title: const Text('Member Since'),
@@ -123,6 +175,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                               ),
                             ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: _signOut,
+                          icon: const Icon(Icons.logout),
+                          label: const Text('Sign Out'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFEF4444), // Red for logout
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
                         ),
                       ),

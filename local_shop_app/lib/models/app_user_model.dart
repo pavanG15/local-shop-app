@@ -9,6 +9,7 @@ class AppUser {
   final String? name; // Customer name
   final String? phone; // Phone number
   final String? photoUrl; // Profile picture URL
+  final List<String>? savedOffers; // List of saved offer IDs
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -21,6 +22,7 @@ class AppUser {
     this.name,
     this.phone,
     this.photoUrl,
+    this.savedOffers,
     this.createdAt,
     this.updatedAt,
   });
@@ -36,6 +38,7 @@ class AppUser {
       name: data['name'],
       phone: data['phone'],
       photoUrl: data['photoUrl'],
+      savedOffers: data['savedOffers'] != null ? List<String>.from(data['savedOffers']) : null,
       createdAt: data['createdAt'] != null ? (data['createdAt'] as Timestamp).toDate() : null,
       updatedAt: data['updatedAt'] != null ? (data['updatedAt'] as Timestamp).toDate() : null,
     );
@@ -50,6 +53,7 @@ class AppUser {
       'name': name,
       'phone': phone,
       'photoUrl': photoUrl,
+      'savedOffers': savedOffers,
       'createdAt': createdAt ?? FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     };

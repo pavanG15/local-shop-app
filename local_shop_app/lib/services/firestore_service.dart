@@ -106,8 +106,11 @@ class FirestoreService {
       query = query.where('category', isEqualTo: category);
     }
 
+    // Filter by active status
+    query = query.where('status', isEqualTo: 'active');
+
     // Sort by expiryDate (soonest first)
-    // query = query.orderBy('expiryDate');
+    query = query.orderBy('expiryDate');
 
     return query.snapshots().map((snapshot) {
       List<Offer> offers = snapshot.docs
@@ -123,10 +126,7 @@ class FirestoreService {
                  offer.shopName.toLowerCase().contains(lowerCaseSearchQuery);
         }).toList();
       }
-      
-      // Sort offers by expiry date in-memory
-      offers.sort((a, b) => a.expiryDate.compareTo(b.expiryDate));
-      
+
       return offers;
     });
   }
@@ -142,7 +142,12 @@ class FirestoreService {
   Future<void> deleteOffer(String offerId, {String? imagePublicId}) async {
     // Delete image from Cloudinary via webhook if publicId is provided
     if (imagePublicId != null) {
-      await _cloudinaryService.deleteImage(imagePublicId);
+      try {
+        await _cloudinaryService.deleteImage(imagePublicId);
+      } catch (e) {
+        print('Error deleting image from Cloudinary for public_id $imagePublicId: $e');
+        // Continue with Firestore deletion even if Cloudinary deletion fails
+      }
     }
     await _db.collection('offers').doc(offerId).delete();
   }
@@ -163,6 +168,43 @@ class FirestoreService {
       await doc.reference.delete();
     }
     print('Purged ${expiredOffersSnapshot.size} expired offers.');
+  }
+
+  // --- Saved Offers Operations ---
+
+  Future<void> saveOffer(String uid, String offerId) async {
+    final userDoc = _db.collection('users').doc(uid);
+    final userSnapshot = await userDoc.get();
+    if (userSnapshot.exists) {
+      final data = userSnapshot.data()!;
+      final savedOffers = List<String>.from(data['savedOffers'] ?? []);
+      if (!savedOffers.contains(offerId)) {
+        savedOffers.add(offerId);
+        await userDoc.update({'savedOffers': savedOffers});
+      }
+    }
+  }
+
+  Future<void> unsaveOffer(String uid, String offerId) async {
+    final userDoc = _db.collection('users').doc(uid);
+    final userSnapshot = await userDoc.get();
+    if (userSnapshot.exists) {
+      final data = userSnapshot.data()!;
+      final savedOffers = List<String>.from(data['savedOffers'] ?? []);
+      savedOffers.remove(offerId);
+      await userDoc.update({'savedOffers': savedOffers});
+    }
+  }
+
+  Stream<List<Offer>> getSavedOffers(String uid) {
+    return _db.collection('users').doc(uid).snapshots().asyncMap((userSnapshot) async {
+      if (!userSnapshot.exists) return [];
+      final data = userSnapshot.data()!;
+      final savedOffers = List<String>.from(data['savedOffers'] ?? []);
+      if (savedOffers.isEmpty) return [];
+      final offersSnapshot = await _db.collection('offers').where(FieldPath.documentId, whereIn: savedOffers).get();
+      return offersSnapshot.docs.map((doc) => Offer.fromFirestore(doc)).toList();
+    });
   }
 
   // --- User Operations ---
@@ -192,11 +234,13 @@ class FirestoreService {
     ).toFirestore());
   }
 
-  Future<void> updateProfile(String uid, {String? name, String? phone, String? photoUrl}) async {
+  Future<void> updateProfile(String uid, {String? name, String? phone, String? photoUrl, String? shopName, String? category}) async {
     Map<String, dynamic> data = {};
     if (name != null) data['name'] = name;
     if (phone != null) data['phone'] = phone;
     if (photoUrl != null) data['photoUrl'] = photoUrl;
+    if (shopName != null) data['shopName'] = shopName;
+    if (category != null) data['category'] = category;
     data['updatedAt'] = FieldValue.serverTimestamp();
     await updateUserData(uid, data);
   }

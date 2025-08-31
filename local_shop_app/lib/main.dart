@@ -4,12 +4,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:local_shop_app/services/auth_service.dart';
 import 'package:local_shop_app/firebase_options.dart';
 import 'package:local_shop_app/screens/signup_screen.dart';
-import 'package:local_shop_app/screens/business_owner_dashboard_screen.dart'; // Import BusinessOwnerDashboardScreen
-import 'package:local_shop_app/screens/user_dashboard_screen.dart'; // Import UserDashboardScreen
-import 'package:local_shop_app/screens/offer_detail_screen.dart';
+import 'package:local_shop_app/screens/business_owner_dashboard_screen.dart';
+import 'package:local_shop_app/screens/user_home_screen.dart';
+import 'package:local_shop_app/screens/main_navigation_screen.dart';
+import 'package:local_shop_app/services/auth_service.dart';
 import 'package:local_shop_app/services/firestore_service.dart';
-import 'package:local_shop_app/models/offer_model.dart';
-import 'package:intl/intl.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,48 +26,68 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Local Shop App',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        // Define the color palette
+        primaryColor: const Color(0xFF6C63FF), // Indigo Purple
+        hintColor: const Color(0xFF00C9A7),    // Teal Green
+        scaffoldBackgroundColor: const Color(0xFFF9FAFB), // Light Gray
+        cardColor: Colors.white,
+
+        // Define text theme
+        textTheme: const TextTheme(
+          // Use your specified text colors here
+        ),
+
+        // Define button theme
+        buttonTheme: const ButtonThemeData(
+          buttonColor: Color(0xFF6C63FF), // Primary color background
+          textTheme: ButtonTextTheme.primary,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(12)),
+          ),
+        ),
+
+        // Define an elevated button theme
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.white, // Text color
+            backgroundColor: const Color(0xFF6C63FF), // Background color
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
+
+        // Define Chip Theme
+        chipTheme: ChipThemeData(
+          backgroundColor: const Color(0xFFF9FAFB), // Light Gray
+          selectedColor: const Color(0xFF6C63FF), // Active state with primary color
+          secondarySelectedColor: const Color(0xFF6C63FF),
+          labelStyle: const TextStyle(color: Colors.black),
+          secondaryLabelStyle: const TextStyle(color: Colors.white),
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        ),
+
+        // Define a color scheme to use the colors consistently
+        colorScheme: ColorScheme.fromSwatch().copyWith(
+          primary: const Color(0xFF6C63FF),
+          secondary: const Color(0xFF00C9A7),
+          error: const Color(0xFFFF4B5C),
+          surface: Colors.white,
+          background: const Color(0xFFF9FAFB),
+        ),
       ),
       home: const AuthWrapper(),
     );
   }
 }
 
-class AuthWrapper extends StatefulWidget {
+class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
 
   @override
-  _AuthWrapperState createState() => _AuthWrapperState();
-}
-
-class _AuthWrapperState extends State<AuthWrapper> {
-  final AuthService _authService = AuthService();
-  User? _currentUser;
-  Future<String?>? _userRoleFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    FirebaseAuth.instance.authStateChanges().listen((user) {
-      setState(() {
-        _currentUser = user;
-        if (user != null) {
-          _userRoleFuture = _authService.getUserRole(user.uid);
-        } else {
-          _userRoleFuture = null;
-        }
-      });
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
-    if (_currentUser == null) {
-      return const LoginScreen();
-    }
-
-    return FutureBuilder<String?>(
-      future: _userRoleFuture,
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
@@ -77,257 +96,51 @@ class _AuthWrapperState extends State<AuthWrapper> {
         }
         if (snapshot.hasError) {
           return Scaffold(
-            body: Center(child: Text('Error: ${snapshot.error}')),
+            body: Center(child: Text('Authentication Error: ${snapshot.error}')),
           );
         }
-        if (!snapshot.hasData) {
+
+        final User? user = snapshot.data;
+        if (user == null) {
           return const LoginScreen();
         }
 
-        final role = snapshot.data;
-        if (role == 'business') {
-          return const BusinessOwnerDashboardScreen();
-        } else {
-          return const UserHomeScreen();
-        }
+        // Run background cleanup for expired offers
+        FirestoreService().purgeExpiredOffers().catchError((e) {
+          // Log error in production app
+        });
+
+        return FutureBuilder<String?>(
+          future: AuthService().getUserRole(user.uid),
+          builder: (context, roleSnapshot) {
+            if (roleSnapshot.connectionState == ConnectionState.waiting) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
+            if (roleSnapshot.hasError) {
+              return Scaffold(
+                body: Center(child: Text('Role Error: ${roleSnapshot.error}')),
+              );
+            }
+            if (!roleSnapshot.hasData) {
+              return const LoginScreen();
+            }
+
+            final role = roleSnapshot.data;
+
+            if (role == 'business') {
+              return const BusinessOwnerDashboardScreen();
+            } else {
+              return const MainNavigationScreen();
+            }
+          },
+        );
       },
     );
   }
 }
 
-class UserHomeScreen extends StatefulWidget {
-  const UserHomeScreen({super.key});
-
-  @override
-  State<UserHomeScreen> createState() => _UserHomeScreenState();
-}
-
-class _UserHomeScreenState extends State<UserHomeScreen> {
-  final FirestoreService _firestoreService = FirestoreService();
-  final AuthService _authService = AuthService();
-  final TextEditingController _searchController = TextEditingController();
-
-  String _selectedCategory = 'All';
-  final List<String> _categories = [
-    'All',
-    'Grocery',
-    'Restaurant',
-    'Clothing',
-    'Electronics',
-    'Other',
-  ];
-
-  String _searchQuery = '';
-
-  @override
-  void initState() {
-    super.initState();
-    _searchController.addListener(() {
-      setState(() {
-        _searchQuery = _searchController.text;
-      });
-    });
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Offers for You'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.dashboard),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const UserDashboardScreen(),
-                ),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await _authService.signOut();
-            },
-          ),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(100.0),
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(
-              children: [
-                TextField(
-                  controller: _searchController,
-                  decoration: const InputDecoration(
-                    labelText: 'Search by Shop or Title',
-                    prefixIcon: Icon(Icons.search),
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<String>(
-                  value: _selectedCategory,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 10),
-                  ),
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      _selectedCategory = newValue!;
-                    });
-                  },
-                  items: _categories.map<DropdownMenuItem<String>>((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
-                  }).toList(),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-      body: StreamBuilder<List<Offer>>(
-        stream: _firestoreService.getActiveOffers(
-          category: _selectedCategory,
-          searchQuery: _searchQuery,
-        ),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('No active offers available.'));
-          }
-
-          final offers = snapshot.data!;
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              if (constraints.maxWidth > 600) {
-                // Grid layout for wide screens
-                return GridView.builder(
-                  padding: const EdgeInsets.all(8.0),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 8.0,
-                    mainAxisSpacing: 8.0,
-                    childAspectRatio: 1.5,
-                  ),
-                  itemCount: offers.length,
-                  itemBuilder: (context, index) {
-                    final offer = offers[index];
-                    return OfferCard(offer: offer);
-                  },
-                );
-              } else {
-                // List layout for narrow screens (mobile)
-                return ListView.builder(
-                  padding: const EdgeInsets.all(8.0),
-                  itemCount: offers.length,
-                  itemBuilder: (context, index) {
-                    final offer = offers[index];
-                    return OfferCard(offer: offer);
-                  },
-                );
-              }
-            },
-          );
-        },
-      ),
-    );
-  }
-}
-
-class OfferCard extends StatelessWidget {
-  final Offer offer;
-  const OfferCard({super.key, required this.offer});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 4.0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-      child: InkWell(
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => OfferDetailScreen(offer: offer),
-            ),
-          );
-        },
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (offer.imageUrl != null && offer.imageUrl!.isNotEmpty)
-              Expanded(
-                child: Image.network(
-                  offer.imageUrl!,
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                ),
-              )
-            else
-              Expanded(
-                child: Container(
-                  color: Colors.grey[200],
-                  child: const Center(
-                    child: Icon(Icons.image, size: 50, color: Colors.grey),
-                  ),
-                ),
-              ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    offer.title,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${offer.discount}% OFF',
-                    style: const TextStyle(fontSize: 14, color: Colors.green),
-                  ),
-                  Text(
-                    'Shop: ${offer.shopName}',
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    'Category: ${offer.category}',
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    'Expires: ${DateFormat('yyyy-MM-dd').format(offer.expiryDate)}',
-                    style: const TextStyle(fontSize: 12, color: Colors.redAccent),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -373,45 +186,131 @@ class _LoginScreenState extends State<LoginScreen> {
     if (_showLoginPage) {
       return Scaffold(
         appBar: AppBar(title: const Text('Login')),
-        body: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              TextField(
-                controller: _emailController,
-                decoration: const InputDecoration(labelText: 'Email'),
+        body: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Form(
+              key: const ValueKey('login_form'),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: 40),
+                  const Text(
+                    'Welcome Back',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Sign in to your account',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 40),
+                  Semantics(
+                    label: 'Email input field',
+                    child: TextFormField(
+                      key: const ValueKey('email_field'),
+                      controller: _emailController,
+                      decoration: const InputDecoration(
+                        labelText: 'Email',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.email),
+                      ),
+                      keyboardType: TextInputType.emailAddress,
+                      autocorrect: false,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Semantics(
+                    label: 'Password input field',
+                    child: TextFormField(
+                      key: const ValueKey('password_field'),
+                      controller: _passwordController,
+                      decoration: const InputDecoration(
+                        labelText: 'Password',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.lock),
+                      ),
+                      obscureText: true,
+                      autocorrect: false,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Semantics(
+                    label: 'Login button',
+                    button: true,
+                    child: ElevatedButton(
+                      key: const ValueKey('login_button'),
+                      onPressed: _signIn,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text(
+                        'Login',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Semantics(
+                    label: 'Sign up link',
+                    link: true,
+                    child: TextButton(
+                      key: const ValueKey('signup_link'),
+                      onPressed: () {
+                        toggleView();
+                      },
+                      child: const Text('Need an account? Sign Up'),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  const Row(
+                    children: [
+                      Expanded(child: Divider()),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        child: Text('OR'),
+                      ),
+                      Expanded(child: Divider()),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  Semantics(
+                    label: 'Google sign in button',
+                    button: true,
+                    child: OutlinedButton.icon(
+                      key: const ValueKey('google_button'),
+                      onPressed: _signInWithGoogle,
+                      icon: Image.asset(
+                        'assets/google_logo.png',
+                        height: 24.0,
+                        width: 24.0,
+                      ),
+                      label: const Text('Continue with Google'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        side: const BorderSide(color: Colors.grey),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                ],
               ),
-              TextField(
-                controller: _passwordController,
-                decoration: const InputDecoration(labelText: 'Password'),
-                obscureText: true,
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _signIn,
-                child: const Text('Login'),
-              ),
-              TextButton(
-                onPressed: () {
-                  toggleView();
-                },
-                child: const Text('Need an account? Sign Up'),
-              ),
-              const SizedBox(height: 10),
-              ElevatedButton.icon(
-                onPressed: _signInWithGoogle,
-                icon: Image.asset(
-                  'assets/google_logo.png',
-                  height: 24.0,
-                ),
-                label: const Text('Sign in with Google'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.black,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       );

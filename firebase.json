@@ -1,7 +1,7 @@
 {
-  "hosting": {
-    "public": "local_shop_app/build/web",
-    "ignore": [
+  "projects": {
+    "local-shop-app": {
+      "firebaseConfig": {
       "firebase.json",
       "**/.*",
       "**/node_modules/**"

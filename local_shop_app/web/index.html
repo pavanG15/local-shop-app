@@ -14,7 +14,7 @@
     This is a placeholder for base href that will be replaced by the value of
     the `--base-href` argument provided to `flutter build`.
   -->
-  <base href="$FLUTTER_BASE_HREF">
+  <base href="/">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
@@ -30,7 +30,33 @@
   <link rel="icon" type="image/png" href="favicon.png"/>
 
   <title>local_shop_app</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Material+Icons&display=swap">
   <link rel="manifest" href="manifest.json">
+
+  <style>
+    /* Override Flutter's touch-action: none that breaks button interactions */
+    body {
+      touch-action: auto !important;
+    }
+
+    /* Ensure buttons and interactive elements work properly */
+    button, [role="button"], .mdc-button, .material-button {
+      touch-action: auto !important;
+      pointer-events: auto !important;
+    }
+
+    /* Fix for Flutter web CanvasKit touch issues */
+    flutter-view {
+      touch-action: auto !important;
+    }
+
+    /* Ensure navigation elements are interactive */
+    nav, .bottom-navigation, .navigation-bar {
+      touch-action: auto !important;
+      pointer-events: auto !important;
+    }
+  </style>
+
   <script src="flutter.js" defer></script>
   <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
@@ -55,10 +81,11 @@
   <script>
     window.addEventListener('load', function(ev) {
         // Download main.dart.js
-        _flutter.loader.loadEntrypoint({
+        _flutter.loader.load({
             serviceWorker: {
                 serviceWorkerVersion: null,
-            }
+            },
+            renderer: 'html' // Force HTML renderer for better touch support
         }).then(function(engineInitializer) {
             engineInitializer.initializeEngine().then(function(appRunner) {
                 appRunner.runApp();
