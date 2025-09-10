@@ -1,4 +1,17 @@
 {
+  "functions": {
+    "api/index.js": { "runtime": "@vercel/node@2.0.0" }
+  },
+  "builds": [
+    {
+      "src": "local_shop_app/pubspec.yaml",
+      "use": "@vercel/static-build",
+      "config": {
+        "buildCommand": "cd local_shop_app && flutter build web --release --web-renderer html",
+        "outputDirectory": "local_shop_app/build/web"
+      }
+    }
+  ],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api" },
     { "source": "/(.*)", "destination": "/index.html" }
@@ -30,21 +43,6 @@
           "value": "public, max-age=31536000, immutable"
         }
       ]
-    }
-  ],
-  "functions": {
-    "api/index.js": {
-      "runtime": "@vercel/node@2.0.0"
-    }
-  },
-  "builds": [
-    {
-      "src": "local_shop_app/pubspec.yaml",
-      "use": "@vercel/static-build",
-      "config": {
-        "buildCommand": "flutter build web --release --web-renderer html",
-        "outputDirectory": "local_shop_app/build/web"
-      }
     }
   ]
 }
